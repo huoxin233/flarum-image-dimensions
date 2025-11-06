@@ -15,24 +15,24 @@ class ImageSizeDetector
             
             try {
                 // Create context with timeout
-                $context = stream_context_create([
+                $opts = [
                     'http' => [
                         'timeout' => self::$timeout,
                         'user_agent' => 'Flarum Image Dimensions Extension'
                     ]
-                ]);
+                ];
+                $context = stream_context_create($opts);
                 
-                // Set default stream context and restore after
-                $prevContext = stream_context_get_default();
-                stream_context_set_default($context);
+                // Download image data with timeout
+                $imageData = file_get_contents($src, false, $context);
                 
-                $result = getimagesize($src);
-                
-                stream_context_set_default($prevContext);
-                
-                if ($result !== false) {
-                    $width = $result[0];
-                    $height = $result[1];
+                if ($imageData !== false) {
+                    $result = getimagesizefromstring($imageData);
+                    
+                    if ($result !== false) {
+                        $width = $result[0];
+                        $height = $result[1];
+                    }
                 }
             } catch (\Throwable $e) {
                 // Ignore errors, return null
