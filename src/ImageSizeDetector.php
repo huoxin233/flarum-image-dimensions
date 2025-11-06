@@ -22,7 +22,7 @@ class ImageSizeDetector
                     ]
                 ]);
                 
-                $result = @getimagesize($src, $imageinfo, $context);
+                $result = @getimagesize($src, $context);
                 
                 if ($result !== false) {
                     $width = $result[0];
