@@ -5,14 +5,32 @@ namespace DShovchko\ImagesChecker;
 class ImageSizeDetector
 {
     protected static $cache = [];
+    protected static $timeout = 3;
 
     public static function getSizes(string $src): array
     {
         if (!isset(self::$cache[$src])) {
-            $result = getimagesize($src);
-
-            $width = $result === FALSE ? null : $result[0];
-            $height = $result === FALSE ? null : $result[1];
+            $width = null;
+            $height = null;
+            
+            try {
+                // Створюємо контекст з timeout
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => self::$timeout,
+                        'user_agent' => 'Flarum Image Dimensions Extension'
+                    ]
+                ]);
+                
+                $result = @getimagesize($src, $imageinfo, $context);
+                
+                if ($result !== false) {
+                    $width = $result[0];
+                    $height = $result[1];
+                }
+            } catch (\Exception $e) {
+                // Ігноруємо помилки, повертаємо null
+            }
         
             self::$cache[$src] = [$width, $height];
         }
