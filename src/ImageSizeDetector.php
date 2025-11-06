@@ -25,23 +25,22 @@ class ImageSizeDetector
                         'user_agent' => 'Flarum Image Dimensions Extension'
                     ]
                 ];
-                $context = stream_context_create($opts);
                 
-                // Use stream wrapper to pass context to getimagesize
-                $wrappedSrc = $src;
-                if (strpos($src, 'http') === 0) {
+                // Set default context for HTTP/HTTPS requests
+                if (str_starts_with($src, 'http')) {
                     stream_context_set_default($opts);
                 }
                 
                 // Get image size from header only (memory efficient)
-                $result = getimagesize($wrappedSrc);
+                $result = getimagesize($src);
                 
                 if ($result !== false) {
                     $width = $result[0];
                     $height = $result[1];
                 }
             } catch (\Throwable $e) {
-                // Ignore errors, return null
+                // Log error for debugging
+                error_log('ImageSizeDetector error for ' . $src . ': ' . $e->getMessage());
             }
         
             self::$cache[$src] = [$width, $height];
