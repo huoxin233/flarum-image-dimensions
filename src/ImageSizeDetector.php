@@ -2,9 +2,21 @@
 
 namespace DShovchko\ImagesChecker;
 
+/**
+ * Detects image dimensions with caching and timeout support
+ */
 class ImageSizeDetector
 {
+    /**
+     * Cache for image dimensions
+     * @var array<string, array{int|null, int|null}>
+     */
     protected static $cache = [];
+    
+    /**
+     * Timeout in seconds for HTTP/HTTPS requests
+     * @var int
+     */
     protected static $timeout = 3;
 
     public static function getSizes(string $src): array
