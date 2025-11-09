@@ -49,8 +49,7 @@ class ImagesCheckCommand extends AbstractCommand
             ->addOption('fix', null, InputOption::VALUE_NONE, 'Should fix images without size attributes')
             ->addOption('mailto', null, InputOption::VALUE_REQUIRED, 'Send the checking log to the specified email')
             ->addOption('fast', null, InputOption::VALUE_NONE, 'Skip remote size checks, only ensure attributes exist')
-            ->addOption('full', null, InputOption::VALUE_NONE, 'Validate remote images and match exact dimensions')
-            ->addOption('strict', null, InputOption::VALUE_NONE, 'Deprecated alias for --full');
+            ->addOption('full', null, InputOption::VALUE_NONE, 'Validate remote images and match exact dimensions');
     }
 
     /**
@@ -181,7 +180,7 @@ class ImagesCheckCommand extends AbstractCommand
 
     protected function configureValidatorMode(): void
     {
-        if ($this->input->getOption('full') || $this->input->getOption('strict')) {
+        if ($this->input->getOption('full')) {
             $this->validator->setMode(ImageSizeValidator::MODE_FULL);
             return;
         }
