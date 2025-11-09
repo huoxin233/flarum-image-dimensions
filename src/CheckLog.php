@@ -108,7 +108,7 @@ class CheckLog
     public static function sprintf(array $record, bool $formatted = true)
     {
         $message = sprintf('discussion %s: ', $record['id']);
-        if (!count($record['fixed']) && !count($record['wrong']) && !count($record['invalid']) && !count($record['checked'])) {
+        if (empty($record['fixed']) && empty($record['wrong']) && empty($record['invalid']) && empty($record['checked'])) {
             $message .= ' There are no images in posts.';
         }
         else {
