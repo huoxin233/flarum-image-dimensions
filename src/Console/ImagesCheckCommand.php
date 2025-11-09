@@ -200,11 +200,12 @@ class ImagesCheckCommand extends AbstractCommand
             return 100;
         }
 
-        if (!is_numeric($chunkOption) || (int) $chunkOption < 1) {
+        $validatedChunk = filter_var($chunkOption, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($validatedChunk === false) {
             throw new \InvalidArgumentException('--chunk must be a positive integer');
         }
 
-        return (int) $chunkOption;
+        return $validatedChunk;
     }
 
     protected function consoleReport()
