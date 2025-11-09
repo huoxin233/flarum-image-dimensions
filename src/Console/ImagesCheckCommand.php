@@ -40,13 +40,17 @@ class ImagesCheckCommand extends AbstractCommand
     protected function configure()
     {
         $this
-            ->setName('images:check')
-            ->setDescription('Checks images in posts for a valid source and set size attributes')
+            ->setName('image-dimensions:check')
+            ->setDescription('Checks post images for missing/invalid dimensions and sources')
             ->addOption('discussion', null, InputOption::VALUE_REQUIRED, 'Process only discussion with the specified ID')
+            ->addOption('all', null, InputOption::VALUE_NONE, 'Process all discussions (use with caution)')
+            ->addOption('chunk', null, InputOption::VALUE_REQUIRED, 'How many discussions to process per batch when using --all (default: 100)')
             ->addOption('post', null, InputOption::VALUE_REQUIRED, 'Process only comment post with the specified ID')
             ->addOption('fix', null, InputOption::VALUE_NONE, 'Should fix images without size attributes')
             ->addOption('mailto', null, InputOption::VALUE_REQUIRED, 'Send the checking log to the specified email')
-            ->addOption('strict', null, InputOption::VALUE_NONE, 'Should perform strict checking of image sizes');
+            ->addOption('fast', null, InputOption::VALUE_NONE, 'Skip remote size checks, only ensure attributes exist')
+            ->addOption('full', null, InputOption::VALUE_NONE, 'Validate remote images and match exact dimensions')
+            ->addOption('strict', null, InputOption::VALUE_NONE, 'Deprecated alias for --full');
     }
 
     /**
@@ -59,6 +63,17 @@ class ImagesCheckCommand extends AbstractCommand
 
     protected function process()
     {
+        CheckLog::reset();
+
+        $this->configureValidatorMode();
+
+        try {
+            $chunkSize = $this->resolveChunkSize();
+        } catch (\InvalidArgumentException $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+
         if ($this->input->getOption('post')) {
             $id = $this->input->getOption('post');
             $post = CommentPost::find($id);
@@ -70,22 +85,39 @@ class ImagesCheckCommand extends AbstractCommand
             $this->processCommentPost($post);
             $this->consoleReport();
             CheckLog::mergeLastBatch();
+            $this->mailReport();
+            return;
         }
-        elseif ($this->input->getOption('discussion')) {
-            $id = $this->input->getOption('discussion');
-            $discussion = Discussion::find($id);
+
+        $discussionId = $this->input->getOption('discussion');
+        $runAll = (bool) $this->input->getOption('all');
+
+        if ($discussionId && $runAll) {
+            $this->error('Please provide either --discussion=<id> or --all, not both.');
+            return;
+        }
+
+        if ($discussionId) {
+            $discussion = Discussion::find($discussionId);
             if ($discussion === null) {
-                $this->error(sprintf('discussion with id=%s not found', $id));
+                $this->error(sprintf('discussion with id=%s not found', $discussionId));
                 return;
             }
             $this->processDiscussion($discussion);
-        } else {
-            Discussion::chunk(100, function ($discussions) {
-                foreach ($discussions as $discussion) {
-                    $this->processDiscussion($discussion);
-                }
-            });
+            $this->mailReport();
+            return;
         }
+
+        if (!$runAll) {
+            $this->error('You must specify either --discussion=<id>, --post=<id>, or --all to run this command.');
+            return;
+        }
+
+        Discussion::chunk($chunkSize, function ($discussions) {
+            foreach ($discussions as $discussion) {
+                $this->processDiscussion($discussion);
+            }
+        });
 
         $this->mailReport();
     }
@@ -95,12 +127,14 @@ class ImagesCheckCommand extends AbstractCommand
         if ($discussion === null) {
             return;
         }
+
         foreach ($discussion->posts as $post) {
             if ($post->type !== 'comment') {
                 continue;
             }
             $this->processCommentPost($post);
         }
+
         $this->consoleReport();
         CheckLog::mergeLastBatch();
     }
@@ -109,13 +143,15 @@ class ImagesCheckCommand extends AbstractCommand
     {
         $result = 0;
         try {
-            if (!$this->checkPost($post)) {
+            $postIsValid = $this->checkPost($post);
+            $hasImages = $this->validator->lastCheckHadImages();
+            if (!$postIsValid) {
                 $result |= 1;
                 if ($this->fixPost($post)) {
                     $result |= 2;
                 }
             }
-            CheckLog::addInfo($post, $result);
+            CheckLog::addInfo($post, $result, $hasImages);
         } catch (\Exception $e) {
             CheckLog::addError($post, $e->getMessage());
         }
@@ -123,8 +159,7 @@ class ImagesCheckCommand extends AbstractCommand
 
     protected function checkPost(CommentPost $post)
     {
-        $strict = $this->input->getOption('strict');
-        return $this->validator->checkContent($post->getParsedContentAttribute(), $strict);
+        return $this->validator->checkContent($post->getParsedContentAttribute());
     }
 
     protected function fixPost(CommentPost $post)
@@ -142,6 +177,35 @@ class ImagesCheckCommand extends AbstractCommand
     protected function shouldFix()
     {
         return $this->input->getOption('fix');
+    }
+
+    protected function configureValidatorMode(): void
+    {
+        if ($this->input->getOption('full') || $this->input->getOption('strict')) {
+            $this->validator->setMode(ImageSizeValidator::MODE_FULL);
+            return;
+        }
+
+        if ($this->input->getOption('fast')) {
+            $this->validator->setMode(ImageSizeValidator::MODE_FAST);
+            return;
+        }
+
+        $this->validator->setMode(ImageSizeValidator::MODE_DEFAULT);
+    }
+
+    protected function resolveChunkSize(): int
+    {
+        $chunkOption = $this->input->getOption('chunk');
+        if ($chunkOption === null) {
+            return 100;
+        }
+
+        if (!is_numeric($chunkOption) || (int) $chunkOption < 1) {
+            throw new \InvalidArgumentException('--chunk must be a positive integer');
+        }
+
+        return (int) $chunkOption;
     }
 
     protected function consoleReport()

@@ -18,12 +18,28 @@ use Flarum\Settings\SettingsRepositoryInterface;
 
 class ImageSizeValidator
 {
+    public const MODE_DEFAULT = 'default';
+    public const MODE_FAST = 'fast';
+    public const MODE_FULL = 'full';
+
     // protected $settings;
 
     // public function __construct(SettingsRepositoryInterface $settings)
     // {
     //     $this->settings = $settings;
     // }
+
+    protected $lastCheckHadImages = false;
+    protected $mode = self::MODE_DEFAULT;
+
+    public function setMode(string $mode): void
+    {
+        $allowed = [self::MODE_DEFAULT, self::MODE_FAST, self::MODE_FULL];
+        if (!in_array($mode, $allowed, true)) {
+            throw new \InvalidArgumentException(sprintf('Unsupported validation mode "%s"', $mode));
+        }
+        $this->mode = $mode;
+    }
 
     protected function hasSrc(DOMElement $el)
     {
@@ -77,19 +93,74 @@ class ImageSizeValidator
         return $this->hasWidth($el) && (int)$el->getAttribute('width') === $width;
     }
 
-    public function checkContent(string $content, bool $strictMode)
+    public function checkContent(string $content)
     {
-        $dom = new DOMDocument();
-        $dom->loadXML($content);
+        if (trim($content) === '' || stripos($content, '<img') === false) {
+            $this->lastCheckHadImages = false;
+            return true;
+        }
+
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $previousState = libxml_use_internal_errors(true);
+
+        $flags = LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET;
+        if (defined('LIBXML_HTML_NOIMPLIED')) {
+            $flags |= LIBXML_HTML_NOIMPLIED;
+        }
+        if (defined('LIBXML_HTML_NODEFDTD')) {
+            $flags |= LIBXML_HTML_NODEFDTD;
+        }
+
+        $loaded = $dom->loadHTML($this->prepareHtmlFragment($content), $flags);
+        $errors = libxml_get_errors();
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousState);
+
+        if (!$loaded) {
+            $messages = array_map(static function ($error) {
+                return trim($error->message);
+            }, $errors);
+            $message = implode('; ', $messages);
+            throw new \RuntimeException($message !== '' ? $message : 'Unable to parse post content');
+        }
+
         $nodes = $dom->getElementsByTagName('img');
+        $this->lastCheckHadImages = $nodes->length > 0;
         $result = true;
         foreach ($nodes as $node) {
-            $result = $result && ($strictMode ? $this->checkImageStrict($node) : $this->checkImage($node));
+            if ($this->mode === self::MODE_FULL) {
+                $result = $result && $this->checkImageStrict($node);
+                continue;
+            }
+
+            if ($this->mode === self::MODE_FAST) {
+                $result = $result && $this->checkImageFast($node);
+                continue;
+            }
+
+            $result = $result && $this->checkImageDefault($node);
         }
+
         return $result;
     }
 
-    protected function checkImage(DOMElement $el)
+    protected function prepareHtmlFragment(string $content): string
+    {
+        $trimmed = trim($content);
+
+        if (str_starts_with($trimmed, '<?xml')) {
+            $trimmed = (string) preg_replace('/^<\?xml[^>]*>\s*/', '', $trimmed); // strip xml declaration
+        }
+
+        return '<?xml encoding="UTF-8">'.$trimmed;
+    }
+
+    public function lastCheckHadImages(): bool
+    {
+        return $this->lastCheckHadImages;
+    }
+
+    protected function checkImageDefault(DOMElement $el)
     {
         if ($this->hasSrc($el) && $this->hasHeight($el) && $this->hasWidth($el)) {
             return true;
@@ -105,5 +176,12 @@ class ImageSizeValidator
             && $this->isValidImageUrl($el->getAttribute('src'))
             && $this->hasExactHeight($el)
             && $this->hasExactWidth($el);
+    }
+
+    protected function checkImageFast(DOMElement $el)
+    {
+        return $this->hasSrc($el)
+            && $this->hasHeight($el)
+            && $this->hasWidth($el);
     }
 }

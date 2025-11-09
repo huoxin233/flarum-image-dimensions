@@ -10,7 +10,7 @@ A Flarum extension that automatically adds `width` and `height` attributes to im
 
 - 🚀 Automatically detects and adds image dimensions
 - ⚡ Adds `loading="lazy"` attribute for better performance
-- 🔍 Console command to check and fix existing posts
+- 🔍 Console command to audit existing posts with flexible modes
 - 📧 Email reports for batch operations
 - ✅ Supports BBCode, Markdown, and auto-linked images
 
@@ -28,27 +28,33 @@ Once enabled, the extension automatically adds dimensions to all new images post
 
 ### Console Command
 
-Check and fix existing posts:
+Audit existing posts using the `image-dimensions:check` console command:
 
 ```bash
-# Check all discussions
-php flarum images:check
+# Check a single discussion
+php flarum image-dimensions:check --discussion=123
 
-# Fix images (add missing dimensions)
-php flarum images:check --fix
+# Check a specific post
+php flarum image-dimensions:check --post=456
 
-# Check specific discussion
-php flarum images:check --discussion=123
+# Scan all discussions in batches of 250
+php flarum image-dimensions:check --all --chunk=250
 
-# Check specific post
-php flarum images:check --post=456
+# Fast mode (verifies only width/height attributes)
+php flarum image-dimensions:check --discussion=123 --fast
 
-# Strict mode (verify exact dimensions)
-php flarum images:check --strict
+# Full mode (verifies URLs and actual image dimensions)
+php flarum image-dimensions:check --discussion=123 --full
 
-# Send report via email
-php flarum images:check --mailto=admin@example.com
+# Email the report
+php flarum image-dimensions:check --all --mailto=admin@example.com
+
+# Automatically fix (upcoming feature)
+php flarum image-dimensions:check --discussion=123 --fix
 ```
+
+> ℹ️  The command requires one of `--discussion=<id>`, `--post=<id>`, or `--all`.
+> When scheduling with cron, combine `--all` with `--chunk` to limit the number of discussions per run.
 
 ## Supported Image Formats
 
