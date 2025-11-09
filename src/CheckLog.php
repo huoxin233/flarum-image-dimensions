@@ -9,7 +9,13 @@ class CheckLog
     protected static $lastBatch = [];
     protected static $records = [];
 
-    public static function addInfo(CommentPost $post, int $resultCode)
+    public static function reset()
+    {
+        self::$lastBatch = [];
+        self::$records = [];
+    }
+
+    public static function addInfo(CommentPost $post, int $resultCode, bool $hasImages = false)
     {
         $postID = $post->id;
         $discussionID = $post->discussion_id;
@@ -18,6 +24,8 @@ class CheckLog
             array_push($record['fixed'], $postID);
         } elseif ($resultCode & 1) {
             array_push($record['wrong'], $postID);
+        } elseif ($hasImages) {
+            array_push($record['checked'], $postID);
         }
     }
 
@@ -36,6 +44,7 @@ class CheckLog
             'id' => $discussionID,
             'fixed' => array(),
             'wrong' => array(),
+            'checked' => array(),
             'invalid' => array(),
             'errors' => array()
         );
@@ -51,7 +60,39 @@ class CheckLog
     
     public static function mergeLastBatch()
     {
-        self::$records = array_merge_recursive(self::$records, self::$lastBatch);
+        foreach (self::$lastBatch as $discussionID => $record) {
+            if (!isset(self::$records[$discussionID])) {
+                self::$records[$discussionID] = $record;
+                continue;
+            }
+
+            self::$records[$discussionID]['fixed'] = array_values(array_unique(array_merge(
+                self::$records[$discussionID]['fixed'],
+                $record['fixed']
+            )));
+
+            self::$records[$discussionID]['wrong'] = array_values(array_unique(array_merge(
+                self::$records[$discussionID]['wrong'],
+                $record['wrong']
+            )));
+
+            self::$records[$discussionID]['invalid'] = array_values(array_unique(array_merge(
+                self::$records[$discussionID]['invalid'],
+                $record['invalid']
+            )));
+
+            self::$records[$discussionID]['checked'] = array_values(array_unique(array_merge(
+                self::$records[$discussionID]['checked'],
+                $record['checked']
+            )));
+
+            self::$records[$discussionID]['errors'] = array_values(array_merge(
+                self::$records[$discussionID]['errors'],
+                $record['errors']
+            ));
+        }
+
+        self::$lastBatch = [];
     }
 
     public static function getLastMessages()
@@ -67,8 +108,8 @@ class CheckLog
     public static function sprintf(array $record, bool $formatted = true)
     {
         $message = sprintf('discussion %s: ', $record['id']);
-        if (!count($record['fixed']) && !count($record['wrong']) && !count($record['invalid'])) {
-            $message .= ' There are no images in posts or all images have size attributes.';
+        if (empty($record['fixed']) && empty($record['wrong']) && empty($record['invalid']) && empty($record['checked'])) {
+            $message .= ' There are no images in posts.';
         }
         else {
             if (count($record['fixed'])) {
@@ -77,6 +118,9 @@ class CheckLog
             if (count($record['wrong'])) {
                 $text = sprintf(' wrong images in posts (%s)', implode(' ', $record['wrong']));
                 $message .= sprintf($formatted ? '<comment>%s</comment>' : '%s', $text);
+            }
+            if (count($record['checked'])) {
+                $message .= sprintf(' images with size attributes (%s)', implode(' ', $record['checked']));
             }
             if (count($record['invalid'])) {
                 $text = sprintf(' invalid images in posts (%s)', implode(' ', $record['invalid']));

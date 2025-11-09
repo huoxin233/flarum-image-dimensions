@@ -1,0 +1,16 @@
+# Changelog
+
+## [1.3.0] - 2025-11-09
+- renamed the console command to `image-dimensions:check`
+- added `--fast`, `--full`, and `--chunk` options with explicit scope requirements
+- updated validator logic and reporting to support the new modes
+
+## [1.2.0] - 2025-11-07
+-  reverts to v1.0.0 functionality by removing AVIF support that was added in v1.1.0
+
+## [1.1.0] - 2025-11-06
+- added AVIF image format support
+- AVIF images now recognized and processed automatically
+
+## [1.0.0] - 2025-11-05
+- initial release
