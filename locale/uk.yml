@@ -1,0 +1,17 @@
+dshovchko-image-dimensions:
+  admin:
+    scheduled_enabled_label: Увімкнути автоматичні перевірки
+    scheduled_enabled_help: Автоматично перевіряти зображення за розкладом
+    scheduled_frequency_label: Частота перевірок
+    frequency_daily: Щодня
+    frequency_weekly: Щотижня
+    frequency_monthly: Щомісяця
+    scheduled_mode_label: Режим перевірки
+    scheduled_mode_help: "Швидкий: тільки наявність атрибутів | Стандартний: атрибути + валідність URL | Повний: точні розміри"
+    mode_fast: Швидкий (тільки атрибути)
+    mode_default: Стандартний (атрибути + URL)
+    mode_full: Повний (точні розміри)
+    scheduled_chunk_label: Розмір батчу
+    scheduled_chunk_help: Кількість дискусій для обробки за один раз
+    scheduled_emails_label: Email отримувачі
+    scheduled_emails_help: Email адреси через кому для отримання звітів

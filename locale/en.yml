@@ -1,0 +1,17 @@
+dshovchko-image-dimensions:
+  admin:
+    scheduled_enabled_label: Enable Scheduled Checks
+    scheduled_enabled_help: Automatically check images on a regular schedule
+    scheduled_frequency_label: Check Frequency
+    frequency_daily: Daily
+    frequency_weekly: Weekly
+    frequency_monthly: Monthly
+    scheduled_mode_label: Check Mode
+    scheduled_mode_help: "Fast: only verify attributes exist | Default: verify attributes + URL validity | Full: verify exact dimensions"
+    mode_fast: Fast (attributes only)
+    mode_default: Default (attributes + URL)
+    mode_full: Full (exact dimensions)
+    scheduled_chunk_label: Batch Size
+    scheduled_chunk_help: Number of discussions to process per batch
+    scheduled_emails_label: Email Recipients
+    scheduled_emails_help: Comma-separated email addresses to receive reports
