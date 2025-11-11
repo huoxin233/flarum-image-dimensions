@@ -10,6 +10,7 @@
 namespace DShovchko\ImagesChecker\Console;
 
 use Flarum\Console\AbstractCommand;
+use Flarum\Foundation\Config;
 use Flarum\Mail\Job\SendRawEmailJob;
 use Flarum\Post\CommentPost;
 use Flarum\Discussion\Discussion;
@@ -24,12 +25,14 @@ class ImagesCheckCommand extends AbstractCommand
     protected $queue;
     protected $validator;
     protected $settings;
+    protected $config;
 
-    public function __construct(ImageSizeValidator $validator, Queue $queue, SettingsRepositoryInterface $settings)
+    public function __construct(ImageSizeValidator $validator, Queue $queue, SettingsRepositoryInterface $settings, Config $config)
     {
         $this->queue = $queue;
         $this->validator = $validator;
         $this->settings = $settings;
+        $this->config = $config;
 
         parent::__construct();
     }
@@ -63,9 +66,9 @@ class ImagesCheckCommand extends AbstractCommand
     protected function process()
     {
         CheckLog::reset();
-        $url = $this->settings->get('url');
+        $url = $this->config->url();
         if ($url) {
-            CheckLog::setBaseUrl($url);
+            CheckLog::setBaseUrl((string) $url);
         }
 
         $this->configureValidatorMode();

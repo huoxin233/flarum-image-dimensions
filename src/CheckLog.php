@@ -14,6 +14,7 @@ class CheckLog
     {
         self::$lastBatch = [];
         self::$records = [];
+        self::$baseUrl = null;
     }
 
     public static function addInfo(CommentPost $post, int $resultCode, bool $hasImages = false)
@@ -113,11 +114,11 @@ class CheckLog
 
     public static function sprintf(array $record, bool $formatted = true)
     {
-        $discussionLink = $record['id'];
         if (!$formatted && self::$baseUrl) {
-            $discussionLink = self::$baseUrl . '/d/' . $record['id'];
+            $message = sprintf("\n=== Discussion %s ===\n%s/d/%s\n", $record['id'], self::$baseUrl, $record['id']);
+        } else {
+            $message = sprintf('discussion %s: ', $record['id']);
         }
-        $message = sprintf('discussion %s: ', $discussionLink);
         if (empty($record['fixed']) && empty($record['wrong']) && empty($record['invalid']) && empty($record['checked'])) {
             $message .= ' There are no images in posts.';
         }
