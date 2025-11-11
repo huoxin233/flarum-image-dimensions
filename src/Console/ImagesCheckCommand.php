@@ -256,7 +256,7 @@ class ImagesCheckCommand extends AbstractCommand
             $body .= CheckLog::sprint($message);
         }
 
-        $subject = sprintf('Images checker report (%d issues)', $withIssues);
+        $subject = sprintf('Images checker report - %s (%d issues)', date('Y-m-d'), $withIssues);
         
         foreach (array_map('trim', explode(',', $emails)) as $email) {
             if (!empty($email)) {
