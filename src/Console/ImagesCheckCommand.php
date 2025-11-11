@@ -220,7 +220,7 @@ class ImagesCheckCommand extends AbstractCommand
         if (!$this->input->getOption('mailto')) {
             return;
         }
-        $email = $this->input->getOption('mailto');
+        $emails = $this->input->getOption('mailto');
 
         $body = '';
         foreach (CheckLog::getMessages() as $message) {
@@ -228,6 +228,11 @@ class ImagesCheckCommand extends AbstractCommand
         }
 
         $subject = 'Images checker report';
-        $this->queue->push(new SendRawEmailJob($email, $subject, $body));
+        
+        foreach (array_map('trim', explode(',', $emails)) as $email) {
+            if (!empty($email)) {
+                $this->queue->push(new SendRawEmailJob($email, $subject, $body));
+            }
+        }
     }
 }
