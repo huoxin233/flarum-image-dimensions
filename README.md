@@ -12,6 +12,8 @@ A Flarum extension that automatically adds `width` and `height` attributes to im
 - ⚡ Adds `loading="lazy"` attribute for better performance
 - 🔍 Console command to audit existing posts with flexible modes
 - 📧 Email reports for batch operations
+- ⏰ Scheduled automatic checks (daily/weekly/monthly)
+- ⚙️ Configurable check modes (fast/default/full)
 - ✅ Supports BBCode, Markdown, and auto-linked images
 
 ## Installation
@@ -26,7 +28,26 @@ composer require dshovchko/flarum-image-dimensions
 
 Once enabled, the extension automatically adds dimensions to all new images posted.
 
-### Console Command
+### Scheduled Checks
+
+Configure automatic checks via the admin panel:
+
+1. Go to **Admin → Extensions → Image Dimensions**
+2. Enable **Scheduled Checks**
+3. Set **Check Frequency** (daily/weekly/monthly)
+4. Choose **Check Mode**:
+   - **Fast**: Only verify attributes exist
+   - **Default**: Verify attributes + URL validity
+   - **Full**: Verify exact dimensions
+5. Set **Batch Size** (number of discussions per run)
+6. Add **Email Recipients** (comma-separated)
+
+> ⚠️ Requires Flarum scheduler to be configured. Add to your crontab:
+> ```bash
+> * * * * * cd /path/to/flarum && php flarum schedule:run >> /dev/null 2>&1
+> ```
+
+### Manual Console Command
 
 Audit existing posts using the `image-dimensions:check` console command:
 
@@ -54,7 +75,6 @@ php flarum image-dimensions:check --discussion=123 --fix
 ```
 
 > ℹ️  The command requires one of `--discussion=<id>`, `--post=<id>`, or `--all`.
-> When scheduling with cron, combine `--all` with `--chunk` to limit the number of discussions per run.
 
 ## Supported Image Formats
 

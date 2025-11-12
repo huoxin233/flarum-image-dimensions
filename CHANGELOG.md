@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2025-11-09
+- added scheduled automatic checks (daily/weekly/monthly)
+- added admin panel for configuring scheduled checks
+- added support for multiple email recipients
+- added Ukrainian and English localizations
+
 ## [1.3.0] - 2025-11-09
 - renamed the console command to `image-dimensions:check`
 - added `--fast`, `--full`, and `--chunk` options with explicit scope requirements

@@ -10,9 +10,11 @@
 namespace DShovchko\ImagesChecker\Console;
 
 use Flarum\Console\AbstractCommand;
+use Flarum\Foundation\Config;
 use Flarum\Mail\Job\SendRawEmailJob;
 use Flarum\Post\CommentPost;
 use Flarum\Discussion\Discussion;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\Queue\Queue;
 use Symfony\Component\Console\Input\InputOption;
 use DShovchko\ImagesChecker\Validators\ImageSizeValidator;
@@ -22,14 +24,21 @@ class ImagesCheckCommand extends AbstractCommand
 {
     protected $queue;
     protected $validator;
+    protected $settings;
+    protected $config;
+
     /**
      * @param ImageSizeValidator $validator
      * @param Queue $queue
+     * @param SettingsRepositoryInterface $settings
+     * @param Config $config
      */
-    public function __construct(ImageSizeValidator $validator, Queue $queue)
+    public function __construct(ImageSizeValidator $validator, Queue $queue, SettingsRepositoryInterface $settings, Config $config)
     {
         $this->queue = $queue;
         $this->validator = $validator;
+        $this->settings = $settings;
+        $this->config = $config;
 
         parent::__construct();
     }
@@ -63,6 +72,10 @@ class ImagesCheckCommand extends AbstractCommand
     protected function process()
     {
         CheckLog::reset();
+        $url = $this->config->url();
+        if ($url) {
+            CheckLog::setBaseUrl((string) $url);
+        }
 
         $this->configureValidatorMode();
 
@@ -220,14 +233,46 @@ class ImagesCheckCommand extends AbstractCommand
         if (!$this->input->getOption('mailto')) {
             return;
         }
-        $email = $this->input->getOption('mailto');
+        $emails = $this->input->getOption('mailto');
 
-        $body = '';
-        foreach (CheckLog::getMessages() as $message) {
+        $messages = CheckLog::getMessages();
+        $total = count($messages);
+        $withIssues = 0;
+        $ok = 0;
+        
+        foreach ($messages as $record) {
+            $hasIssues = !empty($record['wrong']) || !empty($record['invalid']) || !empty($record['errors']);
+            if ($hasIssues) {
+                $withIssues++;
+            } else {
+                $ok++;
+            }
+        }
+        
+        $summary = sprintf(
+            "Image Dimensions Check Report\n\nTotal discussions: %d\n✅ OK: %d\n⚠️ Issues: %d\n%s\n",
+            $total,
+            $ok,
+            $withIssues,
+            str_repeat('=', 50)
+        );
+        
+        $body = $summary;
+        foreach ($messages as $message) {
             $body .= CheckLog::sprint($message);
         }
 
-        $subject = 'Images checker report';
-        $this->queue->push(new SendRawEmailJob($email, $subject, $body));
+        $subject = sprintf('Images checker report - %s (%d issues)', (new \DateTime())->format('Y-m-d'), $withIssues);
+        
+        foreach (array_map('trim', explode(',', $emails)) as $email) {
+            if (empty($email)) {
+                continue;
+            }
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $this->queue->push(new SendRawEmailJob($email, $subject, $body));
+            } else {
+                $this->info(sprintf('Invalid email address skipped: %s', $email));
+            }
+        }
     }
 }

@@ -6,13 +6,18 @@ use Flarum\Post\CommentPost;
 
 class CheckLog
 {
+    protected const EMOJI_OK = '✅';
+    protected const EMOJI_WARNING = '⚠️';
+    
     protected static $lastBatch = [];
     protected static $records = [];
+    protected static $baseUrl = null;
 
     public static function reset()
     {
         self::$lastBatch = [];
         self::$records = [];
+        self::$baseUrl = null;
     }
 
     public static function addInfo(CommentPost $post, int $resultCode, bool $hasImages = false)
@@ -105,9 +110,22 @@ class CheckLog
         return self::$records;
     }
 
+    public static function setBaseUrl(string $url)
+    {
+        self::$baseUrl = rtrim($url, '/');
+    }
+
     public static function sprintf(array $record, bool $formatted = true)
     {
-        $message = sprintf('discussion %s: ', $record['id']);
+        $id = $record['id'];
+        $hasIssues = !empty($record['wrong']) || !empty($record['invalid']) || !empty($record['errors']);
+        $emoji = $hasIssues ? self::EMOJI_WARNING : self::EMOJI_OK;
+        
+        if (!$formatted && self::$baseUrl) {
+            $message = sprintf("\n%s Discussion %s\n%s/d/%s\n", $emoji, $id, self::$baseUrl, $id);
+        } else {
+            $message = sprintf('discussion %s: ', $id);
+        }
         if (empty($record['fixed']) && empty($record['wrong']) && empty($record['invalid']) && empty($record['checked'])) {
             $message .= ' There are no images in posts.';
         }

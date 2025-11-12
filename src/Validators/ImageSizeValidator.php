@@ -53,10 +53,15 @@ class ImageSizeValidator
     {
         $context = stream_context_create([
             'http' => [
-                'method' => 'HEAD'
+                'method' => 'HEAD',
+                'timeout' => 5
             ]
         ]);
+        
+        set_error_handler(function() {});
         $headers = get_headers($url, true, $context);
+        restore_error_handler();
+        
         if ($headers === false) {
             throw new \Exception(sprintf('The image URL (%s) is invalid', $url));
         }
@@ -65,7 +70,9 @@ class ImageSizeValidator
             throw new \Exception(sprintf('Invalid HTTP status line for image URL (%s): %s', $url, $headers[0]));
         }
         $status = (int)$statusParts[1];
-        if ($status >= 400) {
+        // 403 may occur due to anti-bot measures, 429 indicates rate limiting
+        // Both don't necessarily mean the image is invalid
+        if ($status >= 400 && $status !== 403 && $status !== 429) {
             throw new \Exception(sprintf('The image URL (%s) is invalid', $url));
         }
         return true;
