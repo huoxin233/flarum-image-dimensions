@@ -114,13 +114,14 @@ class CheckLog
 
     public static function sprintf(array $record, bool $formatted = true)
     {
+        $id = $record['id'];
         $hasIssues = !empty($record['wrong']) || !empty($record['invalid']) || !empty($record['errors']);
         $emoji = $hasIssues ? '⚠️' : '✅';
         
         if (!$formatted && self::$baseUrl) {
-            $message = sprintf("\n%s Discussion %s\n%s/d/%s\n", $emoji, $record['id'], self::$baseUrl, $record['id']);
+            $message = sprintf("\n%s Discussion %s\n%s/d/%s\n", $emoji, $id, self::$baseUrl, $id);
         } else {
-            $message = sprintf('discussion %s: ', $record['id']);
+            $message = sprintf('discussion %s: ', $id);
         }
         if (empty($record['fixed']) && empty($record['wrong']) && empty($record['invalid']) && empty($record['checked'])) {
             $message .= ' There are no images in posts.';
