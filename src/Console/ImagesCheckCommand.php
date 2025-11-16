@@ -181,11 +181,9 @@ class ImagesCheckCommand extends AbstractCommand
         }
         
         try {
-            // Force re-parse by marking content as dirty and saving
+            // Force re-parse by explicitly setting content attribute
             // This triggers TextFormatter with our overrides that add dimensions
-            $content = $post->content;
-            $post->content = null;
-            $post->content = $content;
+            $post->setAttribute('content', $post->content);
             $post->save();
             return true;
         } catch (\Exception $e) {
