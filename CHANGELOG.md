@@ -1,9 +1,9 @@
 # Changelog
 
 ## [1.5.0] - 2025-11-12
-- implemented `--fix` option to automatically add missing image dimensions
-- fix works by re-saving posts to trigger TextFormatter with dimension detection
-- supports fixing single post, discussion, or all posts
+- Implemented `--fix` option to automatically add missing image dimensions
+- Fix works by re-saving posts to trigger TextFormatter with dimension detection
+- Supports fixing single post, discussion, or all posts
 
 ## [1.4.0] - 2025-11-09
 - added scheduled automatic checks (daily/weekly/monthly)
