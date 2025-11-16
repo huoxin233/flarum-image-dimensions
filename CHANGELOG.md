@@ -2,7 +2,7 @@
 
 ## [1.5.0] - 2025-11-12
 - Implemented `--fix` option to automatically add missing image dimensions
-- Fix works by re-saving posts to trigger TextFormatter with dimension detection
+- Fix works by re-saving posts to trigger TextFormatter overrides that add dimensions
 - Supports fixing single post, discussion, or all posts
 
 ## [1.4.0] - 2025-11-09
